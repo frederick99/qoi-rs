@@ -7,4 +7,4 @@ edition = "2024"
 qoi-rs = { path = ".." }
 winit = "0.30.12"
 softbuffer = "0.4.8"
-pixels = "0.15.0"
+nalgebra = "0.34"
