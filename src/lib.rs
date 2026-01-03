@@ -1,5 +1,7 @@
 use std::num::Wrapping;
 
+mod ffi;
+
 #[derive(Debug, Clone, Copy)]
 enum QoiOp {
     RGB { r: u8, g: u8, b: u8 },

@@ -2,3 +2,8 @@
 Cargo.lock
 /*.png
 /*.qoi
+*.ps1
+*.obj
+*.exe
+*.dll
+*.lib
