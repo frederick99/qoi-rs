@@ -17,6 +17,7 @@ jobs:
     - name: Install required software
       run: |
         sudo apt install libx11-dev
+        sudo apt install libxcursor-dev
     - name: Build
       run: |
         cargo build --release
