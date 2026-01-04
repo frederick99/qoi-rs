@@ -17,11 +17,11 @@ const char* vertexShaderSource = SHADER_SRC(
     layout (location = 0) in vec3 aPos;
     layout (location = 1) in vec2 aTexCoord;
     out vec2 texCoord;
-    uniform mat4 modelMatrix;
+    uniform mat4 viewMatrix;
     uniform mat4 projMatrix;
     void main()
     {
-        gl_Position = modelMatrix * projMatrix * vec4(aPos, 1.0);
+        gl_Position = projMatrix * viewMatrix * vec4(aPos, 1.0);
         texCoord = aTexCoord;
     });
 
@@ -31,11 +31,10 @@ const char* fragmentShaderSource = SHADER_SRC(
     uniform sampler2D myTexture;
     void main()
     {
-        vec2 c = texCoord;
-        FragColor = mix(vec4(c, 0.0f, 1.0f), texture(myTexture, c), 1.0);
+        FragColor = texture(myTexture, texCoord);
     });
 
-unsigned char* qoi_decode(const char* data, size_t len, size_t* width, size_t* height);
+unsigned char* qoi_decode(const char* data, int len, int* width, int* height);
 void qoi_free(char* data);
 
 int main(int argc, char **argv) {
@@ -51,7 +50,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    size_t width, height;
+    int width, height;
     unsigned char* image = qoi_decode(sb.data, sb.count, &width, &height);
     free(sb.data);
 
@@ -175,28 +174,28 @@ int main(int argc, char **argv) {
     int mouse_x, mouse_y;
     int saved_mouse_x, saved_mouse_y;
 
-    Matrix model = {0}, saved_model;
-    Matrix proj = {0};
+    Matrix view = {0};
+    Matrix proj = {0}, saved_proj;
 
-    matrix_load_identity(&model);
+    matrix_load_identity(&view);
     matrix_load_identity(&proj);
 
     float aspect_ratio = (float)window->w / (float)window->h;
     if (aspect_image < aspect_ratio)
-        matrix_scale(&proj, 1.0/aspect_ratio, 1.0, 1.0);
+        matrix_scale(&view, 1.0/aspect_ratio, 1.0, 1.0);
     else
-        matrix_scale(&proj, 1.0, aspect_ratio/1.0, 1.0);
+        matrix_scale(&view, 1.0, aspect_ratio/1.0, 1.0);
 
     glUseProgram(shaderProgram);
-    GLint model_loc = glGetUniformLocation(shaderProgram, "modelMatrix");
     GLint proj_loc = glGetUniformLocation(shaderProgram, "projMatrix");
+    GLint view_loc = glGetUniformLocation(shaderProgram, "viewMatrix");
 
     RGFW_event event;
     bool is_first_run = true;
     while (RGFW_window_shouldClose(window) == RGFW_FALSE) {
 
-        bool update_model = is_first_run;
         bool update_proj = is_first_run;
+        bool update_view = is_first_run;
         is_first_run = false;
 
         while (RGFW_window_checkEvent(window, &event)) {
@@ -206,30 +205,30 @@ int main(int argc, char **argv) {
                 glViewport(0, 0, window->w, window->h);
                 aspect_ratio = (float)window->w / (float)window->h;
 
-                matrix_load_identity(&proj);
+                matrix_load_identity(&view);
                 if (aspect_image < aspect_ratio)
-                    matrix_scale(&proj, 1.0/aspect_ratio, 1.0, 1.0);
+                    matrix_scale(&view, 1.0/aspect_ratio, 1.0, 1.0);
                 else
-                    matrix_scale(&proj, 1.0, aspect_ratio/1.0, 1.0);
-                update_proj = true;
+                    matrix_scale(&view, 1.0, aspect_ratio/1.0, 1.0);
+                update_view = true;
             }
 
             else if (event.type == RGFW_mouseScroll) {
                 float scroll_y = event.scroll.y;
-                float current_scale = model.c0.r0;
+                float current_scale = proj.c0.r0;
                 if (scroll_y < 0.0 && current_scale < 0.1 ||
                     scroll_y > 0.0 && current_scale > 10.0) {
                 } else {
                     float scale_factor = 1.0 + 0.1*scroll_y;
-                    matrix_scale(&model, scale_factor, scale_factor, 1.0);
-                    update_model = true;
+                    matrix_scale(&proj, scale_factor, scale_factor, 1.0);
+                    update_proj = true;
                 }
             }
 
             else if (event.type == RGFW_mouseButtonPressed) {
                 if (event.button.value == RGFW_mouseLeft) {
                     is_pressed = true;
-                    saved_model = model;
+                    saved_proj = proj;
                     saved_mouse_x = mouse_x;
                     saved_mouse_y = mouse_y;
                 }
@@ -248,9 +247,9 @@ int main(int argc, char **argv) {
                     int dx = mouse_x - saved_mouse_x;
                     int dy = mouse_y - saved_mouse_y;
 
-                    model = saved_model;
-                    matrix_translate(&model, (float)dx/window->w*2.0, -(float)dy/window->h*2.0, 0.0);
-                    update_model = true;
+                    proj = saved_proj;
+                    matrix_translate(&proj, (float)dx/window->w*2.0, -(float)dy/window->h*2.0, 0.0);
+                    update_proj = true;
                 }
             }
         }
@@ -258,8 +257,8 @@ int main(int argc, char **argv) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        if (update_model) glUniformMatrix4fv(model_loc, 1, GL_FALSE, (const float*)&model);
         if (update_proj) glUniformMatrix4fv(proj_loc, 1, GL_FALSE, (const float*)&proj);
+        if (update_view) glUniformMatrix4fv(view_loc, 1, GL_FALSE, (const float*)&view);
 
         glDrawElements(GL_TRIANGLES, ARRAY_LEN(indices), GL_UNSIGNED_INT, 0);
 

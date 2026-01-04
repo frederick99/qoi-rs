@@ -5,26 +5,26 @@ use crate::Decoder;
 #[unsafe(no_mangle)]
 pub extern "C" fn qoi_decode(
     data: *const u8,
-    len: usize,
-    out_width: *mut usize,
-    out_height: *mut usize,
+    len: u32,
+    out_width: *mut u32,
+    out_height: *mut u32,
 ) -> *const u8 {
     if data.is_null() {
         return std::ptr::null();
     }
 
     let mut decoder = Decoder::new();
-    let decoded = decoder.decode(unsafe { slice::from_raw_parts(data, len) });
+    let decoded = decoder.decode(unsafe { slice::from_raw_parts(data, len as usize) });
 
     let Some(image) = decoded else {
         return std::ptr::null();
     };
 
     if !out_width.is_null() {
-        unsafe { *out_width = image.width };
+        unsafe { *out_width = image.width as u32 };
     }
     if !out_height.is_null() {
-        unsafe { *out_height = image.height };
+        unsafe { *out_height = image.height as u32 };
     }
 
     let bytes = transmute_vec::<_, u8>(image.pixels);
