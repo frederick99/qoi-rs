@@ -1,0 +1,49 @@
+name: Build pipeline
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: |
+        cargo build --release
+        ls target/release
+        cd qoi-viewer-gl
+        cc -o qoi-viewer-gl main.c -L../target/release -l:libqoi_rs.a
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build_output
+        path: |
+          qoi-viewer-gl/qoi-viewer-gl
+
+  # release:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write
+  #   steps:
+  #   - name: Download artifacts
+  #     uses: actions/download-artifact@v4
+  #     with:
+  #       name: build_output
+  #   - name: Create Release
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       tag: ${{ github.sha }}
+  #     run: |
+  #       gh release create "${tag:0:7}" \
+  #             main.o \
+  #             --repo="$GITHUB_REPOSITORY" \
+  #             --title="${GITHUB_REPOSITORY#*/} ${tag:0:7}" \
+  #             --generate-notes
