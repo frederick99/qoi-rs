@@ -26,7 +26,7 @@ jobs:
       run: |
         cargo build --release
         cd qoi-viewer-gl
-        cc -o qoi-viewer-gl main.c -lGL -lX11 -L../target/release -l:libqoi_rs.a
+        cc -o qoi-viewer-gl main.c -lGL -lX11 -lXrandr -L../target/release -l:libqoi_rs.a
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
