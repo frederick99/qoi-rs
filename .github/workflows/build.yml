@@ -1,0 +1,47 @@
+name: Build pipeline
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install required software
+      run: |
+        sudo apt install -y \
+          libx11-dev        \
+          libxcursor-dev    \
+          libxrandr-dev     \
+          libxi-dev         \
+          libgl-dev
+    - name: Build
+      run: |
+        # build library
+        cargo build --release
+        cargo test -- --show-output
+        cargo test --release -- --show-output
+        # build software renderer
+        cd qoi-viewer
+        cargo build --release
+        cd ..
+        # build opengl renderer
+        cd qoi-viewer-gl
+        cc -o qoi-viewer-gl main.c -lGL -lX11 -lXrandr -L../target/release -l:libqoi_rs.a
+        cd ..
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux_artifacts
+        path: |
+          target/release/libqoi_rs.a
+          target/release/libqoi_rs.so
+          target/release/qoi-viewer
+          qoi-viewer-gl/qoi-viewer-gl
