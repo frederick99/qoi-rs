@@ -2,6 +2,10 @@ use std::num::Wrapping;
 
 mod ffi;
 
+#[cfg(target_family = "wasm")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 #[derive(Debug, Clone, Copy)]
 enum QoiOp {
     RGB { r: u8, g: u8, b: u8 },
