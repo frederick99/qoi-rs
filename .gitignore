@@ -7,3 +7,4 @@ Cargo.lock
 *.exe
 *.dll
 *.lib
+*.wasm
